@@ -14,13 +14,15 @@ local helper = require('Helpers');
 
 local lastFrameTime = 0
 local tick = 0
-local startingGilAmount = 0
+local startingGilAmount = -1
 local currentGilAmount = 0
 local startingGilTime = 0
 local gilPerHour = 0
 local config = false
 
-local entMgr = AshitaCore:GetMemoryManager():GetEntity();
+local entityManager = AshitaCore:GetMemoryManager():GetEntity();
+local playerManager = AshitaCore:GetMemoryManager():GetPlayer();
+local partyManager = AshitaCore:GetMemoryManager():GetParty();
 
 local function CheckPointInRangeOfTable(treasurePoints, playerPos, openMaxRangeSq)
     for _, p in ipairs(treasurePoints) do
@@ -80,14 +82,14 @@ end);
 ashita.events.register('packet_in', 'packet_in_cb', function(e)
     -- Packet: Zone Leave
     if (e.id == 0x000B) then
-        zoning = true;
+        hidden.zoning = true;
         return;
     end
 
     -- Packet: Inventory Update Completed
     if (e.id == 0x001D) then
-        zoning = false;
-        if (startingGilAmount == -1) then
+        hidden.zoning = false;
+        if (startingGilAmount == -1 and partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0) then
             ResetGilPerHour()
         end
         return;
@@ -152,17 +154,17 @@ local function UpdateProgressData(lastFrameTime, currentFrameTime)
 end
 
 ashita.events.register('text_in', 'text_in_cb', function(e)
-    local party = AshitaCore:GetMemoryManager():GetParty();
-    if (party:GetMemberIsActive(0) == 0 or party:GetMemberServerId(0) == 0) then
+    
+    if (partyManager:GetMemberIsActive(0) == 0 or partyManager:GetMemberServerId(0) == 0) then
         return;
     end
-    local zoneID = party:GetMemberZone(0)
+    local zoneID = partyManager:GetMemberZone(0)
     local zoneName = AshitaCore:GetResourceManager():GetString('zones.names', zoneID);
 
     if (e.message_modified:contains("The chest was a mimic!")) then
-        local myIndex = party:GetMemberTargetIndex(0);
-        local playerPos = { entMgr:GetLocalPositionX(myIndex), entMgr:GetLocalPositionY(myIndex),
-            entMgr:GetLocalPositionZ(myIndex) }
+        local myIndex = partyManager:GetMemberTargetIndex(0);
+        local playerPos = { entityManager:GetLocalPositionX(myIndex), entityManager:GetLocalPositionY(myIndex),
+            entityManager:GetLocalPositionZ(myIndex) }
         zoneName = zoneName .. " " .. GetZoneChestTypeAsString(zoneID, playerPos, 5.75)
         SetProgressData(zoneName, 30)
     elseif (e.message_modified:contains("You discern that the illusion will remain for ")) then
@@ -179,16 +181,16 @@ ashita.events.register('text_in', 'text_in_cb', function(e)
             return
         end
 
-        local myIndex = party:GetMemberTargetIndex(0);
-        local playerPos = { entMgr:GetLocalPositionX(myIndex), entMgr:GetLocalPositionY(myIndex),
-            entMgr:GetLocalPositionZ(myIndex) }
+        local myIndex = partyManager:GetMemberTargetIndex(0);
+        local playerPos = { entityManager:GetLocalPositionX(myIndex), entityManager:GetLocalPositionY(myIndex),
+            entityManager:GetLocalPositionZ(myIndex) }
         zoneName = zoneName .. " " .. GetZoneChestTypeAsString(zoneID, playerPos, 5.75)
         --Add 59 seconds and then set the table, so we don't open early.
         SetProgressData(zoneName, minutesRemaining + (59 / 60))
     elseif (e.message_modified:contains("You unlock the chest!")) then
-        local myIndex = party:GetMemberTargetIndex(0);
-        local playerPos = { entMgr:GetLocalPositionX(myIndex), entMgr:GetLocalPositionY(myIndex),
-            entMgr:GetLocalPositionZ(myIndex) }
+        local myIndex = partyManager:GetMemberTargetIndex(0);
+        local playerPos = { entityManager:GetLocalPositionX(myIndex), entityManager:GetLocalPositionY(myIndex),
+            entityManager:GetLocalPositionZ(myIndex) }
         zoneName = zoneName .. " " .. GetZoneChestTypeAsString(zoneID, playerPos, 5.75)
         SetProgressData(zoneName, 30)
     elseif (e.message_modified:contains("fails to open the chest.")) then
@@ -212,9 +214,10 @@ ashita.events.register('d3d_present', 'mobdb_main_render', function()
         local nowFrameTime = os.time()
         UpdateProgressData(lastFrameTime, nowFrameTime)
         lastFrameTime = nowFrameTime
-        if (startingGilAmount == 0) then
-            ResetGilPerHour()
-        end
+
+        -- if (startingGilAmount == -1 and partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0) then
+        --     ResetGilPerHour()
+        -- end
         UpdateGilPerHour()
     end
 
@@ -273,7 +276,9 @@ ashita.events.register('command', 'command_cb', function(e)
 
     if (#args > 1) then
         if (string.lower(args[2]) == "resetgil") then
-            ResetGilPerHour()
+            if (partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0) then
+                ResetGilPerHour()
+            end
         elseif (string.lower(args[2]) == "config") then
             config = not config
         end
