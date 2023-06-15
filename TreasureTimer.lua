@@ -22,28 +22,32 @@ local config = false
 
 local entMgr = AshitaCore:GetMemoryManager():GetEntity();
 
-local function CheckPointInRangeOfTable(zoneID, playerPos, openingRangeSq, chestOrCofferTable)
-    if (chestOrCofferTable[zoneID]) then
-        local zonePoints = chestOrCofferTable[zoneID].points
-        for _, p in ipairs(zonePoints) do
-            --Input data is in X,Z,Y format, playerPos is X,Y,Z
-            local distanceSq = helper.DistanceSquaredXZY_XYZ(p, playerPos)
-            if distanceSq <= openingRangeSq then
-                return true
-            end
+local function CheckPointInRangeOfTable(treasurePoints, playerPos, openMaxRangeSq)
+    for _, p in ipairs(treasurePoints) do
+        --Input data is in X,Z,Y format, playerPos is X,Y,Z
+        local distanceSq = helper.DistanceSquaredXZY_XYZ(p, playerPos)
+        if distanceSq <= openMaxRangeSq then
+            return true
         end
     end
     return false
 end
 
 local function GetZoneChestTypeAsString(zoneID, playerPos, openingRange)
-    if (CheckPointInRangeOfTable(zoneID, playerPos, openingRange ^ 2, data.chest)) then
-        return "Chest"
-    elseif (CheckPointInRangeOfTable(zoneID, playerPos, openingRange ^ 2, data.coffer)) then
-        return "Coffer"
-    else
-        return "Unknown"
+    local cofferAtKey = data.coffer[zoneID]
+    local chestAtKey = data.chest[zoneID]
+    local openingRangeSq = openingRange^2
+    if (cofferAtKey) then
+        if (CheckPointInRangeOfTable(cofferAtKey.points, playerPos, openingRangeSq)) then
+            return "Coffer"
+        end
     end
+    if (chestAtKey) then
+        if (CheckPointInRangeOfTable(chestAtKey.points, playerPos, openingRangeSq)) then
+            return "Chest"
+        end
+    end
+    return "Unknown"
 end
 
 local function CalculateElapsedTimeAsHours(start, current)
