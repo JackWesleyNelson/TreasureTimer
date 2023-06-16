@@ -89,9 +89,6 @@ ashita.events.register('packet_in', 'packet_in_cb', function(e)
     -- Packet: Inventory Update Completed
     if (e.id == 0x001D) then
         hidden.zoning = false;
-        if (startingGilAmount == -1 and partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0) then
-            ResetGilPerHour()
-        end
         return;
     end
 
@@ -215,9 +212,9 @@ ashita.events.register('d3d_present', 'mobdb_main_render', function()
         UpdateProgressData(lastFrameTime, nowFrameTime)
         lastFrameTime = nowFrameTime
 
-        -- if (startingGilAmount == -1 and partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0) then
-        --     ResetGilPerHour()
-        -- end
+        if (startingGilAmount == -1 and (partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0)) then
+            ResetGilPerHour()
+        end
         UpdateGilPerHour()
     end
 
