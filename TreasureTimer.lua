@@ -1,4 +1,4 @@
-addon.name    = 'treasureTimer';
+addon.name    = 'TreasureTimer';
 addon.author  = 'Apples_mmmmmmmm';
 addon.version = '1.0';
 addon.desc    = 'Displays expected maximum respawn timers for chests/coffers based on last open attempt';
@@ -11,6 +11,8 @@ local imgui = require('imgui');
 local data = require('Data');
 local hidden = require('Hidden');
 local helper = require('Helpers');
+local settingsPath = string.format('%saddons\\%s\\WindowSettings.lua', AshitaCore:GetInstallPath(), addon.name);
+local settings = require('WindowSettings');
 
 local lastFrameTime = 0
 local tick = 0
@@ -77,6 +79,7 @@ end
 
 ashita.events.register('load', 'load_callback1', function()
     lastFrameTime = os.time()
+
 end);
 
 ashita.events.register('packet_in', 'packet_in_cb', function(e)
@@ -150,6 +153,124 @@ local function UpdateProgressData(lastFrameTime, currentFrameTime)
     end
 end
 
+
+local function WriteWindow(settingsFile, windowName, position, size)
+    local positionX, positionY = position[1], position[2]
+    local sizeX, sizeY = size[1], size[2]
+
+    settingsFile:write("M." .. windowName .. " = {\n")
+    settingsFile:write("\tpositionX = " .. positionX .. ",\n")
+    settingsFile:write("\tpositionY = " .. positionY .. ",\n")
+    settingsFile:write("\tsizeX = " .. sizeX .. ",\n")
+    settingsFile:write("\tsizeY = " .. sizeY .. ",\n")
+    settingsFile:write("}\n")
+end
+
+local function SaveWindowSettings(windowNames, positions, sizes)
+    local scriptPath = debug.getinfo(1, "S").source:sub(2)
+    local scriptDir = scriptPath:match("(.*/)") or ""    
+    local settingsFile = io.open(settingsPath, "w")
+    if not settingsFile then
+        print("TreasureTimer WindowSettings.lua not loaded")
+        return
+    end
+    settingsFile:write("local M = {}\n")
+    for i, name in ipairs(windowNames) do 
+        WriteWindow(settingsFile, name, positions[i], sizes[i])
+    end
+    settingsFile:write("return M")
+    settingsFile:close()  
+end
+
+local initWindows = false
+
+local function RenderGPH(flags)
+    imgui.SetNextWindowBgAlpha(0)
+    if(not initWindows and settings) then
+        local gphSettings = settings.gilPerHourWindow
+        if gphSettings then        
+            imgui.SetNextWindowPos({gphSettings.positionX, gphSettings.positionY})
+            imgui.SetNextWindowSize({gphSettings.sizeX, gphSettings.sizeY})
+        end
+    end
+    imgui.Begin("Gil Per Hour", true, flags)
+    imgui.Text("Gil/H: " .. gilPerHour .. "g")
+    if(settings and settings.gilPerHourWindow) then
+        local windowPosX, windowPosY = imgui.GetWindowPos()
+        settings.gilPerHourWindow.positionX = windowPosX
+        settings.gilPerHourWindow.positionY = windowPosY
+
+        local windowSizeX, windowSizeY = imgui.GetWindowSize()
+        settings.gilPerHourWindow.sizeX = windowSizeX
+        settings.gilPerHourWindow.sizeY = windowSizeY
+    end
+    imgui.End()
+
+    if table.length(data.progress) <= 0 then
+        return
+    end
+end
+
+local function RenderTimers(flags)
+    imgui.SetNextWindowBgAlpha(0)
+    if(not initWindows and settings) then
+        local pbSettings = settings.progressBarWindow
+        if pbSettings then        
+            imgui.SetNextWindowPos({pbSettings.positionX, pbSettings.positionY})
+            imgui.SetNextWindowSize({pbSettings.sizeX, pbSettings.sizeY})
+        end
+    end  
+    imgui.Begin("Progress Bars", true, flags)
+    for k, v in pairs(data.progress) do
+        local progressPercentage = (30 - v.current) / 30
+        local sec = (v.current * 60) % 60
+        local remainingTime = string.format("%02d:%02d", v.current, sec)
+
+        imgui.Text(k)
+        imgui.SameLine()
+        imgui.Text(": ")
+        imgui.SameLine()
+        imgui.ProgressBar(progressPercentage, { -1.0, 0.0 }, remainingTime)
+    end
+
+    if(settings and settings.progressBarWindow) then
+        local windowPosX, windowPosY = imgui.GetWindowPos()
+        settings.progressBarWindow.positionX = windowPosX
+        settings.progressBarWindow.positionY = windowPosY
+
+        local windowSizeX, windowSizeY = imgui.GetWindowSize()
+        settings.progressBarWindow.sizeX = windowSizeX
+        settings.progressBarWindow.sizeY = windowSizeY
+    end
+    
+    imgui.End()
+end
+
+
+local function Render()
+    if (hidden.GetHidden()) then
+        return
+    end
+
+    local flags = bit.bor(
+        ImGuiWindowFlags_NoDecoration,
+        --ImGuiWindowFlags_AlwaysAutoResize,
+        ImGuiWindowFlags_NoSavedSettings,
+        ImGuiWindowFlags_NoFocusOnAppearing,
+        ImGuiWindowFlags_NoNav,
+        ImGuiWindowFlags_NoBackground
+    )
+
+    if (config) then
+        flags = 0
+    end
+    RenderGPH(flags)
+    RenderTimers(flags)
+    if(not initWindows) then
+        initWindows = true
+    end
+end
+
 ashita.events.register('text_in', 'text_in_cb', function(e)
     
     if (partyManager:GetMemberIsActive(0) == 0 or partyManager:GetMemberServerId(0) == 0) then
@@ -218,46 +339,7 @@ ashita.events.register('d3d_present', 'mobdb_main_render', function()
         UpdateGilPerHour()
     end
 
-    local flags = bit.bor(
-        ImGuiWindowFlags_NoDecoration,
-        --ImGuiWindowFlags_AlwaysAutoResize,
-        ImGuiWindowFlags_NoSavedSettings,
-        ImGuiWindowFlags_NoFocusOnAppearing,
-        ImGuiWindowFlags_NoNav,
-        ImGuiWindowFlags_NoBackground
-    )
-
-    if (config) then
-        flags = 0
-    end
-
-    if (hidden.GetHidden()) then
-        return
-    end
-
-    imgui.SetNextWindowBgAlpha(0)
-    local gilPerHourWindow = imgui.Begin("Gil Per Hour", true, flags)
-    imgui.Text("Gil/H: " .. gilPerHour .. "g")
-    imgui.End()
-
-    if (table.length(data.progress) <= 0) then
-        return
-    end
-
-    imgui.SetNextWindowBgAlpha(0)
-    local pbWindow = imgui.Begin("Progress Bars", true, flags)
-    for k, v in pairs(data.progress) do
-        local progressPercentage = (30 - v.current) / 30
-        local sec = (v.current * 60) % 60
-        local remainingTime = string.format("%02d:%02d", v.current, sec)
-
-        imgui.Text(k)
-        imgui.SameLine()
-        imgui.Text(": ")
-        imgui.SameLine()
-        imgui.ProgressBar(progressPercentage, { -1.0, 0.0 }, remainingTime)
-    end
-    imgui.End()
+    Render()
 end);
 
 ashita.events.register('command', 'command_cb', function(e)
@@ -291,4 +373,18 @@ ashita.events.register('command', 'command_cb', function(e)
             SetProgressData(location, timeInMinutes)
         end
     end
+end);
+
+
+ashita.events.register('unload', 'unload_callback1', function ()
+    local windowNames = {"gilPerHourWindow", "progressBarWindow"}
+    local positions = {
+        {settings.gilPerHourWindow.positionX, settings.gilPerHourWindow.positionY}, 
+        {settings.progressBarWindow.positionX, settings.progressBarWindow.positionY},                     
+    }
+    local sizes = {
+        {settings.gilPerHourWindow.sizeX, settings.gilPerHourWindow.sizeY}, 
+        {settings.progressBarWindow.sizeX, settings.progressBarWindow.sizeY},
+    }
+    SaveWindowSettings(windowNames, positions, sizes)
 end);
