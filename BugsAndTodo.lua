@@ -14,6 +14,7 @@
     If chest checked returns the floor of the current time for that chest, don't update it.
     Update new chest opens to include a range for the min illusion time, and max. Max should be 30m, min could be as 
         low as 25m from what I've seen.
+    Handle alignment of progress bar and text description, or set it up a different nicer looking way.
   ]]
 
 --[[ BUG:

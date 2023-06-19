@@ -6,9 +6,9 @@ M.gilPerHourWindow = {
 	sizeY = 48,
 }
 M.progressBarWindow = {
-	positionX = 2337,
-	positionY = 730,
-	sizeX = 221,
-	sizeY = 288,
+	positionX = 2233,
+	positionY = 733,
+	sizeX = 328,
+	sizeY = 264,
 }
 return M

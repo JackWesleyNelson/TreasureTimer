@@ -45,7 +45,7 @@ local function GetEventSystemActive()
 end
 
 function M.GetHidden()
-    if (zoning or GetEventSystemActive() or GetInterfaceHidden()) then
+    if (M.zoning or GetEventSystemActive() or GetInterfaceHidden()) then
         return true;
     end
     

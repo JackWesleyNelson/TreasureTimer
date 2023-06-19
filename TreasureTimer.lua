@@ -72,9 +72,9 @@ end
 local function ResetGilPerHour()
     local gil = AshitaCore:GetMemoryManager():GetInventory():GetContainerItem(0, 0);
     if (gil) then
-        startingGilAmount = gil.Count
+        startingGilAmount = gil.Count        
+        startingGilTime = os.clock()
     end
-    startingGilTime = os.clock()
 end
 
 ashita.events.register('load', 'load_callback1', function()
@@ -92,6 +92,9 @@ ashita.events.register('packet_in', 'packet_in_cb', function(e)
     -- Packet: Inventory Update Completed
     if (e.id == 0x001D) then
         hidden.zoning = false;
+        if (startingGilAmount == -1 and (partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0)) then
+            ResetGilPerHour()
+        end
         return;
     end
 
