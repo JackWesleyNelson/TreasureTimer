@@ -328,18 +328,18 @@ ashita.events.register('text_in', 'text_in_cb', function(e)
 end);
 
 ashita.events.register('d3d_present', 'mobdb_main_render', function()
+    if (startingGilAmount == -1 and (partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0)) then
+        ResetGilPerHour()
+    end
     --We don't need to tick often.
     if (os.clock() - tick >= .25) then
         tick = os.clock()
-
-        local nowFrameTime = os.time()
-        UpdateProgressData(lastFrameTime, nowFrameTime)
-        lastFrameTime = nowFrameTime
-
-        if (startingGilAmount == -1 and (partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0)) then
-            ResetGilPerHour()
+        if(not hidden.GetHidden()) then
+            local nowFrameTime = os.time()
+            UpdateProgressData(lastFrameTime, nowFrameTime)
+            lastFrameTime = nowFrameTime
+            UpdateGilPerHour()
         end
-        UpdateGilPerHour()
     end
 
     Render()

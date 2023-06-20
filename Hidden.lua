@@ -49,7 +49,7 @@ function M.GetHidden()
         return true;
     end
     
-    for i, m in ipairs(menuMatch) do
+    for _, m in ipairs(menuMatch) do
         if (string.match(GetMenuName(), m)) then
             return true;
         end

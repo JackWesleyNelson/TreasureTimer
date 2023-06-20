@@ -10,8 +10,7 @@
         Keep a tab of success/failure/type of failure etc.
         Save this when we unload and set previous values when we load.
         For starters, just dump a log when user does /tt tab, or /tt results
-    Add option for alphabetical sorting, time based (ascending/descending)
-    If chest checked returns the floor of the current time for that chest, don't update it.
+    Add option for alphabetical sorting, time based (ascending/descending)    
     Update new chest opens to include a range for the min illusion time, and max. Max should be 30m, min could be as 
         low as 25m from what I've seen.
     Handle alignment of progress bar and text description, or set it up a different nicer looking way.
