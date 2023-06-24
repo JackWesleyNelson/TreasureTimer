@@ -16,7 +16,7 @@ local settings = require('WindowSettings');
 
 local lastFrameTime = 0
 local tick = 0
-local startingGilAmount = -1
+local startingGilAmount = 0
 local currentGilAmount = 0
 local startingGilTime = 0
 local gilPerHour = 0
@@ -92,9 +92,9 @@ ashita.events.register('packet_in', 'packet_in_cb', function(e)
     -- Packet: Inventory Update Completed
     if (e.id == 0x001D) then
         hidden.zoning = false;
-        if (startingGilAmount == -1 and (partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0)) then
-            ResetGilPerHour()
-        end
+        -- if (startingGilAmount == 0 and (partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0)) then
+        --     ResetGilPerHour()
+        -- end
         return;
     end
 
@@ -328,7 +328,7 @@ ashita.events.register('text_in', 'text_in_cb', function(e)
 end);
 
 ashita.events.register('d3d_present', 'mobdb_main_render', function()
-    if (startingGilAmount == -1 and (partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0)) then
+    if (startingGilAmount == 0 and (partyManager:GetMemberIsActive(0) ~= 0 or partyManager:GetMemberServerId(0) ~= 0)) then
         ResetGilPerHour()
     end
     --We don't need to tick often.
