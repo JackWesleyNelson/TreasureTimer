@@ -2,7 +2,7 @@ addon.name    = 'TreasureTimer';
 addon.author  = 'Apples_mmmmmmmm';
 addon.version = '1.0';
 addon.desc    = 'Displays expected maximum respawn timers for chests/coffers based on last open attempt';
-addon.link    = '';
+addon.link    = 'https://github.com/JackWesleyNelson/TreasureTimer';
 
 
 require('common');
@@ -41,14 +41,14 @@ local function GetZoneChestTypeAsString(zoneID, playerPos, openingRange)
     local cofferAtKey = data.coffer[zoneID]
     local chestAtKey = data.chest[zoneID]
     local openingRangeSq = openingRange^2
-    if (cofferAtKey) then
-        if (CheckPointInRangeOfTable(cofferAtKey.points, playerPos, openingRangeSq)) then
-            return "Coffer"
-        end
-    end
     if (chestAtKey) then
         if (CheckPointInRangeOfTable(chestAtKey.points, playerPos, openingRangeSq)) then
             return "Chest"
+        end
+    end    
+    if (cofferAtKey) then
+        if (CheckPointInRangeOfTable(cofferAtKey.points, playerPos, openingRangeSq)) then
+            return "Coffer"
         end
     end
     return "Unknown"
@@ -274,6 +274,8 @@ local function Render()
     end
 end
 
+local openingRange = 7.5
+
 ashita.events.register('text_in', 'text_in_cb', function(e)
     
     if (partyManager:GetMemberIsActive(0) == 0 or partyManager:GetMemberServerId(0) == 0) then
@@ -286,7 +288,7 @@ ashita.events.register('text_in', 'text_in_cb', function(e)
         local myIndex = partyManager:GetMemberTargetIndex(0);
         local playerPos = { entityManager:GetLocalPositionX(myIndex), entityManager:GetLocalPositionY(myIndex),
             entityManager:GetLocalPositionZ(myIndex) }
-        zoneName = zoneName .. " " .. GetZoneChestTypeAsString(zoneID, playerPos, 5.75)
+        zoneName = zoneName .. " " .. GetZoneChestTypeAsString(zoneID, playerPos, openingRange)
         SetProgressData(zoneName, 30)
     elseif (e.message_modified:contains("You discern that the illusion will remain for ")) then
         --TODO: try to cut this code down by finding the second match of a valid number. Maybe we don't even have to do the silly check if number is 1 or 2 digits once we change to that.
@@ -305,14 +307,14 @@ ashita.events.register('text_in', 'text_in_cb', function(e)
         local myIndex = partyManager:GetMemberTargetIndex(0);
         local playerPos = { entityManager:GetLocalPositionX(myIndex), entityManager:GetLocalPositionY(myIndex),
             entityManager:GetLocalPositionZ(myIndex) }
-        zoneName = zoneName .. " " .. GetZoneChestTypeAsString(zoneID, playerPos, 5.75)
+        zoneName = zoneName .. " " .. GetZoneChestTypeAsString(zoneID, playerPos, openingRange)
         --Add 59 seconds and then set the table, so we don't open early.
         SetProgressData(zoneName, minutesRemaining + (59 / 60))
     elseif (e.message_modified:contains("You unlock the chest!")) then
         local myIndex = partyManager:GetMemberTargetIndex(0);
         local playerPos = { entityManager:GetLocalPositionX(myIndex), entityManager:GetLocalPositionY(myIndex),
             entityManager:GetLocalPositionZ(myIndex) }
-        zoneName = zoneName .. " " .. GetZoneChestTypeAsString(zoneID, playerPos, 5.75)
+        zoneName = zoneName .. " " .. GetZoneChestTypeAsString(zoneID, playerPos, openingRange)
         SetProgressData(zoneName, 30)
     elseif (e.message_modified:contains("fails to open the chest.")) then
 
@@ -366,7 +368,7 @@ ashita.events.register('command', 'command_cb', function(e)
         end
     else
         print("Usage: Lockpick a chest to add or update the illusion timer for that zone.")
-        print("OR /tt <\"ZoneName\"> <minutesRemaining>")
+        print("OR /tt set <\"ZoneName\"> <minutesRemaining>")
         print("to manually change the timer for an area.")
     end
     if (#args > 3) then
